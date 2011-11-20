@@ -12,7 +12,7 @@ require 'shoulda'
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 $LOAD_PATH.unshift(File.dirname(__FILE__))
-require 'eq2-tiler'
+require 'eq2_tiler'
 
 class Test::Unit::TestCase
 end
