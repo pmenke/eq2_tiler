@@ -1,8 +1,8 @@
-= eq2-tiler
+= eq2_tiler
 
-Description goes here.
+This is a map tile generator that uses rmagick to generate sets of map tiles for browser games on the basis of a simple DSL that describes how to layout the tiles.
 
-== Contributing to eq2-tiler
+== Contributing to eq2_tiler
  
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet
 * Check out the issue tracker to make sure someone already hasn't requested it and/or contributed it
