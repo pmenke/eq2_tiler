@@ -14,11 +14,11 @@ require 'rake'
 require 'jeweler'
 Jeweler::Tasks.new do |gem|
   # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
-  gem.name = "eq2-tiler"
+  gem.name = "eq2_tiler"
   gem.homepage = "http://github.com/pmenke/eq2-tiler"
-  gem.license = "MIT"
-  gem.summary = %Q{TODO: one-line summary of your gem}
-  gem.description = %Q{TODO: longer description of your gem}
+  gem.license = "CC"
+  gem.summary = %Q{A customizable browser game map tile generator, based on rmagick}
+  gem.description = %Q{This is a map tile generator that uses rmagick to generate sets of map tiles for browser games on the basis of a simple DSL that describes how to layout the tiles.}
   gem.email = "pmenke@googlemail.com"
   gem.authors = ["Peter Menke"]
   # dependencies defined in Gemfile
