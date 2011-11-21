@@ -18,19 +18,24 @@ class EQ2::Tiler::MapTile
   # tiles usually have an additional height of up to 6px (circa).
   TILE_BASE_HEIGHT=18
   
-  attr_accessor :name
+  attr_accessor :name, :operations
   
-  def self.generate(name, base_class=EQ2::Tiler::MapTile, &compose_block)
+  # This method evaluates the given block and registers all operations
+  # that are to be performed when this map tile is rendered.
+  def self.configure(name, base_class=EQ2::Tiler::MapTile, &compose_block)
     tile = base_class.send(:new)
     tile.name = name
-    tile.compose compose_block
+    if compose_block != nil
+      tile.compose compose_block
+    end
     tile
   end
   
+  # Creates a new map tile object. Maybe combine this with the configure method?
   def initialize
     @i=nil
     @generate_block=nil
-    @children = Array.new
+    @operations = Array.new
     init_tile_image
   end
   
@@ -50,58 +55,140 @@ class EQ2::Tiler::MapTile
     TILE_BASE_HEIGHT
   end
   
+  # Init the first and bottom-most image. 
+  # This could be omitted.
   def init_tile_image
-    @i = Magick::Image.new(width,height) { self.background_color = "blue" }
+    list = Magick::ImageList.new("./resources/tiler/overlay-base.png")
+    @i = list.first
     @i
   end
   
   # This method pulls in and integrates all information and generates
   # a rmagick image object on this basis.
-  def generate_tile
-    # TODO is this still necessary?
-    # override this in subclasses
-    #compose @generate_block
+  # Technically, it iterates the list of operations and performs them
+  # on top of the base image.
+  def generate_tile()
+    @i = do_generate_tile(@i)
   end
+  
+  # This method performs the actual generation of tiles. It can also be
+  # called recursively. It returns the new image.
+  def do_generate_tile(image)
+    i = image
+    @operations.each do |operation|
+      i = send("do_#{operation[:operation]}", i, operation)
+    end
+    return i
+  end
+  
   
   # This method calls generate_tile and creates an image file of the
   # desired type.
-  def generate_tile_image(type = :png)
+  def generate_tile_image(output_path, type = :png)
     generate_tile unless @i.nil?
-    @i.write("image.#{type}")
+    @i.write(File.join(output_path, "#{name}.#{type}"))
   end
   
+  # Shows the tile image in a new window.
   def display_tile_image
     generate_tile unless @i.nil?
     display_image = @i.scale(8.0)
     display_image.display
   end
   
-  # returns true iff this MapTile has one or more child MapTiles.
-  def has_children?
-    @children.size>0
-  end
-  
-  # retrieve all children of this MapTile
-  def children
-    @children
-  end
-  
+  # Registers all operations formulated in the tile DSL inside the
+  # given block.
   def compose(block)
-    puts "self: #{self}, #{self.class.name}"
     block.yield self
   end
   
-  def colorize(color)
-    @i = @i.colorize(0.25, 0.25, 0.25, color)
+  # adds a new operation hash to the array of operations.
+  def add_operation(new_operation)
+    @operations << new_operation
   end
   
-  def overlay(overlay_image, colorize=nil, opacity=0.5)
-    puts "What this method does: overlay the image '#{overlay_image}' with an opacity of #{opacity}."
-    overlay = Magick::ImageList.new("./resources/tiler/overlay-grass.png").first
-    unless colorize.nil?
-      overlay = overlay.colorize(0.5, 0.5, 0.5, colorize)
+  # retrieves the first operation with a given key, or nil.
+  def get_operation_by_key(key)
+    r = @operations.select{|o| o[:key]==key}
+    if r != nil
+      return r.first if r.size>0
     end
-    @i = @i.composite(overlay, 0, 0, Magick::OverCompositeOp)
+    return nil
+  end
+
+  # registers a new 'colorize' operation.
+  def colorize(key, color)
+    op = {:operation => :colorize, :key => key, :color => color}
+    add_operation op
+  end
+  
+  # adopts all operations from other_tile.
+  def adopt(other_tile)
+    other_tile.operations.each do |op|
+      @operations << op.clone
+    end
+  end
+  
+  # registers a new 'overlay image' operation.
+  def overlay_image(key, overlay_image, colorize=nil, opacity=0.5)    
+    op = {:operation => :overlay_image, :image_path => overlay_image, :key => key}
+    unless colorize == nil
+        op[:colorize] = colorize
+    end
+    unless opacity == nil
+      op[:opacity] = opacity
+    end
+    add_operation op
+  end
+  
+  # modifies an existing 'overlay image' operation, e.g., to change the image file,
+  # the tint or the opacity.
+  def modify_overlay(key, overlay_image=nil, colorize=nil, opacity=nil)
+    op = get_operation_by_key(key)
+    unless op.nil?
+      unless overlay_image == nil
+        op[:overlay_image] = overlay_image
+      end
+      unless colorize == nil
+        op[:colorize] = colorize
+      end
+      unless opacity == nil
+        op[:opacity] = opacity
+      end
+    end
+  end
+  
+  # registers a new 'set height' operation to enlarge the tile.
+  def set_height(height) 
+    op = {:operation => :set_height, :height => height}
+    add_operation op
+  end
+  
+  # performs a 'colorize' operation on the given image, and based on the given hash.
+  def do_colorize(image, hash)
+    return image.colorize(0.25, 0.25, 0.25, hash[:color])
+  end
+
+  # performs a 'overlay image' operation on the given image, and based on the given hash.  
+  def do_overlay_image(image, hash)
+    puts "get image"
+    puts hash[:image_path]
+    puts File.exists? hash[:image_path]
+    overlay_i = Magick::ImageList.new(hash[:image_path]).first
+    puts "Do we want to colorize?"
+    if hash.has_key? :colorize
+      opc = hash[:opacity]
+      overlay_i = overlay_i.colorize(opc, opc, opc, hash[:colorize])
+    end
+    return image.composite(overlay_i, 0, image.rows-overlay_i.rows, Magick::OverCompositeOp)
+  end
+  
+  # performs a 'set height' operation on the given image, and based on the given hash.
+  def do_set_height(image, hash)
+    i = Magick::Image.new(TILE_WIDTH, hash[:height]) {
+      self.background_color = "none"
+    }
+    i = i.composite(image, 0, hash[:height]-image.rows, Magick::OverCompositeOp)
   end
   
 end
