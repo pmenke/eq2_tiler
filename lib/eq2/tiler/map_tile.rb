@@ -75,7 +75,9 @@ class EQ2::Tiler::MapTile
   # called recursively. It returns the new image.
   def do_generate_tile(image)
     i = image
+    puts "GENERATE #{name}: #{i}"
     @operations.each do |operation|
+      puts "  ! do_#{operation[:operation]}, #{operation}."
       i = send("do_#{operation[:operation]}", i, operation)
     end
     return i
@@ -143,20 +145,27 @@ class EQ2::Tiler::MapTile
   
   # modifies an existing 'overlay image' operation, e.g., to change the image file,
   # the tint or the opacity.
-  def modify_overlay(key, overlay_image=nil, colorize=nil, opacity=nil)
+  def modify_overlay(key, hash)
     op = get_operation_by_key(key)
     unless op.nil?
-      unless overlay_image == nil
-        op[:overlay_image] = overlay_image
-      end
-      unless colorize == nil
-        op[:colorize] = colorize
-      end
-      unless opacity == nil
-        op[:opacity] = opacity
-      end
+      op.merge! hash.select{|k,v| [:overlay_image,:colorize,:opacity].include? k}
     end
   end
+  
+  #def modify_overlay(key, overlay_image=nil, colorize=nil, opacity=nil)
+  #  op = get_operation_by_key(key)
+  #  unless op.nil?
+  #    unless overlay_image == nil
+  #      op[:overlay_image] = overlay_image
+  #    end
+  #    unless colorize == nil
+  #      op[:colorize] = colorize
+  #    end
+  #    unless opacity == nil
+  #      op[:opacity] = opacity
+  #    end
+  #  end
+  #end
   
   # registers a new 'set height' operation to enlarge the tile.
   def set_height(height) 
@@ -166,19 +175,30 @@ class EQ2::Tiler::MapTile
   
   # performs a 'colorize' operation on the given image, and based on the given hash.
   def do_colorize(image, hash)
-    return image.colorize(0.25, 0.25, 0.25, hash[:color])
+    opc = hash[:opacity]
+    i2 = image.colorize(opc, opc, opc, hash[:colorize])
+    opcounter = hash[:opacity]
+    while opcounter > 0.0
+      #i2 = i2.darken(0.25)
+      #i2 = i2.contrast(true)
+      opcounter -= 0.15
+    end
+    i2 = i2.modulate 1.0, 1.0+(1.0-1.0*hash[:opacity]), 1.0
+    return i2
   end
 
   # performs a 'overlay image' operation on the given image, and based on the given hash.  
   def do_overlay_image(image, hash)
-    puts "get image"
-    puts hash[:image_path]
-    puts File.exists? hash[:image_path]
+    #puts "get image"
+    #puts "#{hash.inspect}"
+    #puts "Image: #{hash[:image_path]}"
+    #puts "File exists? #{File.exists?(hash[:image_path])}"
     overlay_i = Magick::ImageList.new(hash[:image_path]).first
-    puts "Do we want to colorize?"
+    #puts "Do we want to colorize?"
     if hash.has_key? :colorize
-      opc = hash[:opacity]
-      overlay_i = overlay_i.colorize(opc, opc, opc, hash[:colorize])
+      
+      #opc = hash[:opacity]
+      overlay_i = do_colorize(overlay_i, hash.merge({:opacity=>0.5})) #overlay_i.colorize(opc, opc, opc, hash[:colorize])
     end
     return image.composite(overlay_i, 0, image.rows-overlay_i.rows, Magick::OverCompositeOp)
   end
