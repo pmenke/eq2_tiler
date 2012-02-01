@@ -58,7 +58,7 @@ class EQ2::Tiler::MapTile
   # Init the first and bottom-most image. 
   # This could be omitted.
   def init_tile_image
-    list = Magick::ImageList.new("./resources/tiler/overlay-base.png")
+    list = Magick::ImageList.new("/Users/pmenke/git/eq2_tiler/resources/tiler/overlay-base.png")
     @i = list.first
     @i
   end
