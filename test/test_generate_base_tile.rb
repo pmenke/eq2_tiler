@@ -6,7 +6,8 @@ class TestGenerateBaseTile < Test::Unit::TestCase
     EQ2::Eorath::EorathTileMaker.make_color_map
     EQ2::Eorath::EorathTileMaker.make_grass("ForestGreen", "TEST")
     EQ2::Eorath::EorathTileMaker.make_forest("red", "blue", "yellow", "TEST")
-    EQ2::Eorath::EorathTileMaker.make_bushes("red", "ForestGreen", "chartreuse1", "TEST")
+    EQ2::Eorath::EorathTileMaker.make_flower_bushes("red", "ForestGreen", "chartreuse1", "TEST")
+    EQ2::Eorath::EorathTileMaker.make_fruit_bushes("red", "ForestGreen", "chartreuse1", "TEST")
   
     [
       ["chartreuse1", "eur"],
@@ -17,9 +18,9 @@ class TestGenerateBaseTile < Test::Unit::TestCase
     ].each do |x|
       EQ2::Eorath::EorathTileMaker.make_city(x[0], "black", "NavajoWhite3", "NavajoWhite3", "red", x[1])
       %w{red plum blue yellow orange}.each do |m|
-        EQ2::Eorath::EorathTileMaker.make_marker(x[0], m, x[1])
+        # EQ2::Eorath::EorathTileMaker.make_marker(x[0], m, x[1])
       end
     end
-    EQ2::Eorath::EorathTileMaker.build
+    # EQ2::Eorath::EorathTileMaker.build
   end
 end

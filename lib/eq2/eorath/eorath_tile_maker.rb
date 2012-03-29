@@ -14,7 +14,9 @@ class EQ2::Eorath::EorathTileMaker
         :noise1_trans => "ground-noise-transparent-1",
         :grass1 => "grass",
         :grass2 => "grass-high",
+        :grass_blossoms => "grass-high-blossoms",
         :grass_trans => "grass-transparent",
+        :hill => "hill",
         :round_bush_shadow1 => "vegetation-round-bush-shadow-1",
         :round_bush1 => "vegetation-round-bush-1",
         :round_bush_flowers1 => "vegetation-round-bush-flowers-1",
@@ -22,6 +24,8 @@ class EQ2::Eorath::EorathTileMaker
         :wheat_straws => "vegetation-wheat-straws",
         :wheat_ears => "vegetation-wheat-ears",
         :forest_treetops => "vegetation-forest-treetops",
+        :forest_treetops2 => "vegetation-forest-treetops2",
+        :forest_spooky => "vegetation-forest-spooky",
         :forest_stems => "vegetation-forest-stems",
         :water1 => "water-1",
         :swamp1 => "puddle-1",
@@ -231,13 +235,22 @@ class EQ2::Eorath::EorathTileMaker
     name
   end
   
-  def self.make_grass(col, gcol, theme = nil)
+  def self.make_grass(col, gcol, fcol=gcol, theme = nil)
     # flat grasses of different shades  
     name = generate_tile_name("GrasLo", [col, gcol], theme)
     tile = MapTile.configure name do |tile|
       tile.adopt @@tiles[:noise1]
       tile.modify_overlay :ground, :colorize => col, :opacity => 0.6
       tile.overlay_image :ground2, @@images[:noise1_trans], "DimGray", 0.5
+    end
+    @@output.store tile.name, tile
+    
+    # flat grasses of different shades  
+    name = generate_tile_name("Hill", [col, gcol], theme)
+    tile = MapTile.configure name do |tile|
+      tile.adopt @@tiles[:noise1]
+      tile.modify_overlay :ground, :colorize => col, :opacity => 0.6
+      tile.overlay_image :hill, @@images[:hill], gcol, 0.5
     end
     @@output.store tile.name, tile
     
@@ -262,6 +275,18 @@ class EQ2::Eorath::EorathTileMaker
       tile.overlay_image :grass, @@images[:grass2], gcol, 0.6
     end
     @@output.store tile.name, tile
+    
+    name = generate_tile_name("GrasHiBlossom", [col, gcol, fcol], theme)
+    tile = MapTile.configure name do |tile|
+      tile.adopt @@tiles[:noise1]
+      tile.set_height 20
+      tile.modify_overlay :ground, :colorize => col, :opacity => 0.3
+      tile.overlay_image :ground2, @@images[:noise1_trans], "DimGray", 0.5
+      tile.overlay_image :grass, @@images[:grass2], gcol, 0.6
+      tile.overlay_image :grass_blossoms, @@images[:grass_blossoms], fcol, 0.6
+    end
+    @@output.store tile.name, tile
+    
   end
   
   def self.make_sand(col, theme = nil)
@@ -313,6 +338,26 @@ class EQ2::Eorath::EorathTileMaker
       tile.overlay_image :treetops, @@images[:forest_treetops], leaf_col, 0.3
     end
     @@output.store tile.name, tile
+    
+    name2 = generate_tile_name("Nadelwald", [leaf_col, stem_col, ground_col], theme)
+    tile2 = MapTile.configure name2 do |tile2|
+      tile2.adopt @@tiles[:noise1]
+      tile2.set_height 21
+      tile2.modify_overlay :ground, :colorize => ground_col, :opacity => 0.3
+      tile2.overlay_image :stems, @@images[:forest_stems], stem_col, 0.3
+      tile2.overlay_image :treetops, @@images[:forest_treetops2], leaf_col, 0.3
+    end
+    @@output.store tile2.name, tile2
+    
+    name2 = generate_tile_name("Gruselwald", [leaf_col, stem_col, ground_col], theme)
+    tile2 = MapTile.configure name2 do |tile2|
+      tile2.adopt @@tiles[:noise1]
+      tile2.set_height 21
+      tile2.modify_overlay :ground, :colorize => ground_col, :opacity => 0.3
+      tile2.overlay_image :spooky, @@images[:forest_spooky], stem_col, 0.3
+    end
+    @@output.store tile2.name, tile2
+    
   end
   
   def self.make_flower_bushes(flower_col, leaf_col, ground_col, theme = nil)
@@ -385,6 +430,25 @@ class EQ2::Eorath::EorathTileMaker
       tile.modify_overlay :flag, :colorize => flag
     end
     @@output.store tile.name, tile
+  end
+  
+  def self.make_color_sample(color_array, destination)
+    i = Magick::Image.new(color_array.size*16+1, 16) {
+      self.background_color = "white"
+    }
+    x = 0
+    
+    sample = Magick::Draw.new
+    
+    color_array.each do |c|
+      sample.stroke(c)
+      sample.fill(c)
+      sample.rectangle(x+1,1,x+15,14)
+      x = x + 16
+    end
+    sample.draw(i)
+    i.write(destination)
+    
   end
   
   
